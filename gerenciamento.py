@@ -1,7 +1,11 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import sqlite3
-from relatorio import registrar_acao, exibir_relatorio  
+
+from relatorio import registrar_acao, exibir_relatorio
+
+
+email_usuario_logado = None
 
 def conectar():
     return sqlite3.connect("papelaria.db")
@@ -14,54 +18,51 @@ def adicionar_item():
     categoria = entry_categoria.get()
 
     try:
+      
         codigo = int(codigo)
         preco = float(preco)
         quantidade = int(quantidade)
-
         if not (nome and categoria):
             raise ValueError
 
         conn = conectar()
         cursor = conn.cursor()
-
         cursor.execute("SELECT * FROM Mercadoria WHERE ID = ?", (codigo,))
         if cursor.fetchone():
-            messagebox.showerror("Erro", "Código já existe. Use o botão Atualizar para alterar o item.")
+            messagebox.showerror("Erro", "Código já existe.")
         else:
             cursor.execute("""
                 INSERT INTO Mercadoria (ID, Nome, Tipo, Preco, Qtde_Estoque)
                 VALUES (?, ?, ?, ?, ?)
             """, (codigo, nome, categoria, preco, quantidade))
             conn.commit()
-            registrar_acao("Adicionar", f"Código: {codigo}, Nome: {nome}, Qtde: {quantidade}, Categoria: {categoria}")
+           
+            registrar_acao("Adicionar", f"Código: {codigo}, Nome: {nome}", email=email_usuario_logado)
             atualizar_lista()
             limpar_campos()
-            desabilitar_botoes()
         conn.close()
 
     except ValueError:
-        messagebox.showerror("Erro", "Preencha todos os campos corretamente com valores válidos.")
+        messagebox.showerror("Erro", "Preencha todos os campos corretamente.")
 
 def remover_item():
     codigo = entry_codigo.get()
+
     if not codigo:
         messagebox.showwarning("Aviso", "Selecione um produto para remover.")
         return
-
+    
     resposta = messagebox.askyesno("Confirmar exclusão", "Deseja excluir esse produto?")
     if resposta:
         conn = conectar()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM Mercadoria WHERE ID = ?", (codigo,))
-        if cursor.rowcount == 0:
-            messagebox.showerror("Erro", "Código do produto não encontrado.")
-        else:
-            conn.commit()
-            registrar_acao("Remover", f"Código: {codigo}")
-            atualizar_lista()
-            limpar_campos()
-            desabilitar_botoes()
+        conn.commit()
+       
+        registrar_acao("Remover", f"Código: {codigo}", email=email_usuario_logado)
         conn.close()
+        atualizar_lista()
+        limpar_campos()
 
 def atualizar_item():
     codigo = entry_codigo.get()
@@ -71,33 +72,25 @@ def atualizar_item():
     categoria = entry_categoria.get()
 
     try:
+        
         preco = float(preco)
         quantidade = int(quantidade)
-
         if not codigo or not nome or not categoria:
             messagebox.showerror("Erro", "Preencha todos os campos corretamente.")
             return
 
         conn = conectar()
         cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM Mercadoria WHERE ID = ?", (codigo,))
-        if cursor.fetchone():
-            cursor.execute("""
-                UPDATE Mercadoria
-                SET Nome = ?, Tipo = ?, Preco = ?, Qtde_Estoque = ?
-                WHERE ID = ?
-            """, (nome, categoria, preco, quantidade, codigo))
-            conn.commit()
-            registrar_acao("Atualizar", f"Código: {codigo}, Nome: {nome}, Qtde: {quantidade}, Categoria: {categoria}")
-            atualizar_lista()
-            limpar_campos()
-            desabilitar_botoes()
-        else:
-            messagebox.showerror("Erro", "Código do produto não encontrado para atualização.")
+        cursor.execute("UPDATE Mercadoria SET Nome = ?, Tipo = ?, Preco = ?, Qtde_Estoque = ? WHERE ID = ?", (nome, categoria, preco, quantidade, codigo))
+        conn.commit()
+        
+        registrar_acao("Atualizar", f"Código: {codigo}, Nome: {nome}", email=email_usuario_logado)
         conn.close()
+        atualizar_lista()
+        limpar_campos()
     except ValueError:
         messagebox.showerror("Erro", "Preencha todos os campos corretamente com valores válidos.")
+
 
 def limpar_campos():
     entry_codigo.delete(0, tk.END)
@@ -145,10 +138,14 @@ def atualizar_lista():
         lista.insert("", tk.END, values=(row[0], row[1], preco_formatado, row[4], row[2]))
     conn.close()
 
-def abrir_tela_gerenciamento():
-    global entry_codigo, entry_nome, entry_preco, entry_quantidade, entry_categoria, lista, btn_remover, btn_atualizar
+
+
+def abrir_tela_gerenciamento(email_login):
+    global email_usuario_logado, entry_codigo, entry_nome, entry_preco, entry_quantidade, entry_categoria, lista, btn_remover, btn_atualizar
+    email_usuario_logado = email_login
 
     janela = tk.Tk()
+   
     janela.title("Gerenciamento de Produtos")
     janela.configure(bg="#FFCE9D")
     janela.geometry("750x600")
@@ -201,6 +198,5 @@ def abrir_tela_gerenciamento():
 
     janela.mainloop()
 
-
 if __name__ == "__main__":
-    abrir_tela_gerenciamento()
+    abrir_tela_gerenciamento("teste@exemplo.com")

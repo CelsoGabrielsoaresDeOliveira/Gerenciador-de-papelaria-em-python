@@ -3,11 +3,11 @@ from tkinter import messagebox
 from login import realizar_login
 from register import abrir_tela_registro
 from reset_password import abrir_tela_redefinir
+
 from gerenciamento import abrir_tela_gerenciamento
-from db import criar_tabela_funcionarios, criar_tabela_mercadoria  # Importa a função de criação da tabela
+from db import criar_tabela_funcionarios, criar_tabela_mercadoria
 
 
-# Chame as funções para criar as tabelas ao iniciar o aplicativo
 criar_tabela_funcionarios()
 criar_tabela_mercadoria()
 
@@ -16,7 +16,8 @@ def fazer_login():
     senha = entry_senha.get()
     if realizar_login(email, senha):
         messagebox.showinfo("Login", "Login realizado com sucesso!")
-        abrir_tela_gerenciamento()
+      
+        abrir_tela_gerenciamento(email)
         root.destroy()
     else:
         messagebox.showerror("Erro", "Email ou senha incorretos.")
